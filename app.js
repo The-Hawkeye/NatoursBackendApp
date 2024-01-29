@@ -2,7 +2,11 @@
 const express = require("express");
 const fs = require("fs");
 const morgan = require("morgan");
+const rateLimit  = require("express-rate-limit")
+const helmet = require("helmet");
 
+const mongoSanitize = require("express-mongo-sanitize");
+const xss = require("xss-clean");
 
 // const tourRoutes = require("./tourRoutes.js");
 const userRoutes = require("./Routes/usersRoutes.js");
@@ -14,10 +18,29 @@ const AppError = require("./apiError.js");
 
 
 const app  = express();
-//Middleware
+//Global Middleware
+
+app.use(helmet());
+
+const limiter=  rateLimit({
+  max:2,
+  windowMs:60*60*100,
+  message:"Too many requests from this IP , Please try after some time"
+})
+
+app.use("/api", limiter)
+
+//Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+//Data sanitization against xss
+app.use(xss());
+
+
 app.use(morgan("hey"));
 
-app.use(express.json());
+app.use(express.json({limit:"10kb"}));
+//will not parse payload greater than 10kb
 
 
 
